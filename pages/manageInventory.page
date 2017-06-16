@@ -1,0 +1,240 @@
+<apex:page controller="ManageInventoryController" sidebar="false" id="inventoryManagementPg" showheader="true" title="Inventory Management">
+   <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"/>
+      <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+      <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script>  
+    function submitData() {        
+         var pName  =  $('[id*="pName"]').val();
+         var pSKU = $('[id*="pSKU"]').val();                  
+         var pQty  =  $('[id*="pQty"]').val();
+         var pUnitPrice  =  $('[id*="pUnitPrice"]').val();
+         
+         var regex = new  RegExp(/^\+?[0-9(),]+$/);
+         if(!pSKU.match(regex)) {
+             alert('Valid inputs for SKU number is 0 thru 9');
+             return false;}
+        
+        if(isNaN(pQty)) {
+            alert('Please enter a numeric value for Qty');
+             return false;  
+         }
+        if(isNaN(pUnitPrice)) {
+            alert('Please enter a numeric value for Unit price');
+             return false;  
+         }
+         if (parseInt(pQty,10) <= 0) {
+             alert('Please enter a non-zero value for the Quantity');
+             return false;
+         }
+         saveNewProduct(pName, pSKU, pQty, pUnitPrice);
+         $('[id*="pName"]').val('');
+         $('[id*="pSKU"]').val('');
+         $('[id*="pQty"]').val('');
+         $('[id*="pUnitPrice"]').val('');
+        }
+    function showProgress() {      
+      $("#progressMsg1").show();          
+    }
+    </script>
+    
+   <style type="text/css">
+    .customPopup { 
+        background-color: white; 
+        border-style: solid; 
+        border-width: 2px; 
+        left: 30%; 
+        padding: 10px; 
+        position: absolute; 
+        z-index: 9999; 
+        width: 500px; 
+        top: 23%; 
+    }     
+     .rowOdd  { background-color: #e5e5e5; }
+     .rowEven { background-color: #f4f4f4; }
+     .headerRow { background-color: red; } 
+     .border_style {        
+        border:0.8px solid black;
+     }
+     span.dateInput span.dateFormat{
+        display:none;
+     }  
+     .datePicker{
+      position: absolute;
+      z-index: 10000!important;;
+     }
+     .comndButton {
+       text-align:center;
+       background:LightBlue;
+       width:100px;
+      } 
+      .msg {
+       font-size:14px;font-weight:bold;color:green;
+       }
+   </style>
+ 
+  <apex:form id="salesCycleReviewFrm"> 
+<!--      <apex:pageMessages id="errors" />-->
+      <apex:actionFunction name="saveNewProduct" action="{!addNewProduct}" reRender="msgAdd,AddPopup,searchBlk,productsTbl">
+       <apex:param name="pName" value=""></apex:param>
+       <apex:param name="pSKU" value=""></apex:param>
+       <apex:param name="pQty" value=""></apex:param>
+       <apex:param name="pUnitPrice" value=""></apex:param>              
+    </apex:actionFunction>
+       <!-- Add Product pop up-->
+        <apex:outputPanel id="AddPopup">
+        <apex:pageBlock id="addPopBlk" rendered="{!isAddWindowOn}">
+         <apex:outputPanel id="popInnerOutputPnl" styleClass="customPopup" layout="block" rendered="{!isAddWindowOn}">
+             <apex:outputPanel layout="block" styleClass="center"> 
+                 
+             <apex:pageblockSection title="New Product (All are mandatory inputs)" columns="1" >
+             
+                  <table>
+                       <tr>                         
+                           <td>
+                               
+                               <apex:inputText id="pSKU" title="SKU" label="SKU" required="true"/>
+                         </td>
+                        </tr> 
+                      
+                        <tr>                        
+                            <td><apex:inputText id="pName" title="Name" label="Name" required="true"/>
+                         </td>
+                        </tr> 
+                      
+                        <tr>                        
+                            <td><apex:inputText id="pQty" title="Qty" label="Qty" required="true" />
+                         </td>
+                        </tr>
+                      
+                        <tr>                         
+                            <td><apex:inputText id="pUnitPrice" title="Unit Price" label="Unit Price" required="true"/>
+                         </td>
+                        </tr>
+                 
+                 </table>
+                                    
+                     <apex:outputPanel layout="block" >
+                         <apex:commandButton value="Cancel" action="{!closeAddPopup}" immediate="true"/>                                         
+                         <apex:commandButton value="Add Product" onclick="submitData();" action="{!closeAddPopup}"  reRender="productsTbl"/>
+                        
+                 </apex:outputPanel>
+                       
+             </apex:pageblockSection>
+             </apex:outputPanel>              
+            </apex:outputPanel>
+            </apex:pageBlock>       
+        </apex:outputPanel>   
+      
+    <apex:pageBlock id="searchBlk" >
+        <apex:pageBlockSection collapsible="true" title="Search" columns="1" >
+            <apex:panelGroup >  
+                <apex:outputPanel id="searchPanel">
+                  <table>
+                   <tr>
+                     <td>Product Name</td>                                            
+                     <td>SKU</td> 
+                      <td></td> 
+                   </tr>   
+                  <tr> <td>
+                         <apex:inputText value="{!pSearchByName}"  />
+                      </td>                     
+                    
+                      <td>
+                         <apex:inputText value="{!pSearchBySKU}"/>
+                      </td>
+                      <td>
+                        <apex:commandButton action="{!runSearch}" title="Search" value="Search" rerender="searchBlk,prodList"/> 
+                        <apex:commandButton action="{!showAddPopUp}" value="Add New Product" style="comndButton"/>
+                      </td></tr>
+                  </table>
+              </apex:outputPanel>
+        </apex:panelGroup>
+          <apex:pageBlockSectionItem >
+                 <div id="saveMsgDiv" align="center" class="msg">
+                     <b>{!msgAddProduct}</b>
+                 </div>                 
+             </apex:pageBlockSectionItem>
+        </apex:pageBlockSection>
+        
+    </apex:pageBlock>
+        
+    <apex:pageBlock id="prodList" >       
+        <div id="progressMsg" style="display:none;font-size:14px;font-weight:bold;color:green" align="center">
+                <b> Saving ..Please wait! </b>
+          </div>
+       <div id="progressMsg1" style="display:none;" styleClass="msg" align="center">
+                <b> Please wait ... </b>
+          </div>
+        
+       <apex:pageBlockSection collapsible="true" title="Products" columns="1" rendered="{!IF(lProducts != null && lProducts.size > 0 , true , false)}">
+          <apex:outputText value="{!msgFilters}" style="font-weight:bold;"></apex:outputText>
+                 <apex:panelGroup >  
+                <apex:outputPanel id="filterPanel">
+                  <table>
+                   <tr>
+                     <td>Name</td>                                            
+                     <td>SKU</td> 
+                      <td></td> 
+                   </tr>   
+                  <tr> <td>
+                         <apex:inputText value="{!pFilterByName}"  />
+                      </td>                     
+                    
+                      <td>
+                         <apex:inputText value="{!pFilterBySKU}"/>
+                      </td>
+                      <td>
+                        <apex:commandButton onclick="showProgress()" action="{!searchByFilters}" title="Filter" value="Filter" style="background:LightBlue;width:50px;" rerender="prodList"/> 
+                        <apex:commandButton onclick="showProgress()" action="{!resetFilters}" title="Reset" value="Reset" style="background:LightBlue;width:50px;" rerender="prodList"/>                                            
+                      </td></tr>
+                      <tr>
+                      <td><apex:commandButton action="{!saveEdits}" value="Save All Edits" style="comndButton" rerender="prodList"/>            
+                      </td>
+                      </tr>
+                  </table>
+              </apex:outputPanel>
+        </apex:panelGroup>
+           <!--<div id="opaneldiv" style="overflow:auto;width:100%;height:10px;">  -->
+           <apex:pageBlockTable id="productsTbl" rendered="{!IF(lProducts != null && lProducts.size > 0 , true , false)}"
+                                value="{!lProducts}" var="prod" styleClass="border_style, display" rowClasses="rowOdd,rowEven" headerClass="headerRow" >              
+           
+            <apex:column >
+                 <apex:facet name="header">
+                   <apex:outputLabel >Name</apex:outputLabel>
+                </apex:facet>
+                <apex:inputField value="{!prod.Name__c}"/>
+            </apex:column>   
+           
+            <apex:column >
+                 <apex:facet name="header">
+                   <apex:outputLabel >SKU</apex:outputLabel>
+                </apex:facet> 
+                <apex:outputField value="{!prod.SKU__c}"/>
+            </apex:column>
+                            
+            <apex:column >
+                 <apex:facet name="header">
+                   <apex:outputLabel >Quantity</apex:outputLabel>
+                </apex:facet>
+                <apex:inputField value="{!prod.Quantity__c}"/>
+            </apex:column>
+                
+            <apex:column >
+                 <apex:facet name="header">
+                   <apex:outputLabel >$Unit Price</apex:outputLabel>
+                </apex:facet> 
+                <apex:inputField value="{!prod.Unit_Price__c}"/>
+            </apex:column>
+               
+             <apex:column >
+                 <apex:facet name="header">
+                   <apex:outputLabel >Active</apex:outputLabel>
+                </apex:facet>
+                <apex:inputField value="{!prod.isActive__c}"/>
+            </apex:column>  
+           </apex:pageBlockTable>    
+          <!-- </div> -->
+           </apex:pageBlockSection>
+      </apex:pageBlock>
+    </apex:form>  
+</apex:page>

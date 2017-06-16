@@ -1,0 +1,39 @@
+<apex:page controller="ImportOrdersController" sidebar="false" id="orderImportPg" showheader="true" title="Order Imports">
+    <apex:form >
+        <apex:pagemessages />
+        <apex:pageBlock >
+            <apex:pageBlockSection columns="4" rendered="{!OR(NOT(isUploaded),NOT(isSaved))}"> 
+                  <apex:inputFile value="{!csvFileBody}"  filename="{!csvAsString}"/>
+                  <apex:commandButton value="Import Orders" action="{!importCSVFile}"/>
+            </apex:pageBlockSection>
+            
+        </apex:pageBlock>
+        <apex:pageBlock rendered="{!IF(AND(lOrderDetails.size > 0,NOT(isSaved)), true,false)}" title="Order Details File">
+            <apex:pageBlockSection columns="1" rendered="{!AND(isUploaded,NOT(isSaved))}" >                                    
+                     <apex:commandButton value="Create Orders" action="{!createOrders}"/>                
+            </apex:pageBlockSection>
+           <div id="opaneldiv" style="overflow:auto;width:100%;height:200px;">
+           <apex:pageblocktable value="{!lOrderDetails}" var="order">
+              <apex:column value="{!order.Order_Id__c}" />
+              <apex:column value="{!order.Order_Item_Id__c}" />
+              <apex:column value="{!order.Sold_Quantity__c}" />
+              <apex:column value="{!order.Unit_Price__c}" />
+              <apex:column value="{!order.product_sku__c }" />
+              <apex:column value="{!order.Order_Create_Date__c }" />             
+        </apex:pageblocktable>
+               </div>
+            
+     </apex:pageBlock>
+<apex:pageBlock rendered="{!IF(isSaved, true,false)}" title="Orders Failed">
+    <apex:outputText rendered="{!IF(lOrdersFailed.size > 0, true,false)}">{!lOrdersFailed}</apex:outputText>
+    <apex:outputText rendered="{!IF(lOrdersFailed.size = 0, true,false)}">None</apex:outputText>
+        </apex:pageBlock>
+        <apex:pageBlock rendered="{!IF(isSaved, true,false)}" title="Orders Created">
+             <apex:outputText rendered="{!IF(lOrdersCreated.size > 0, true,false)}">{!lOrdersCreated}</apex:outputText>
+            <apex:outputText rendered="{!IF(lOrdersCreated.size = 0, true,false)}">None</apex:outputText>
+          <!-- <apex:pageblocktable value="{!lOrdersCreated}" var="order">
+              <apex:column value="{!order.Order_Id__c}" />
+        </apex:pageblocktable>-->
+     </apex:pageBlock>
+   </apex:form>
+</apex:page>
